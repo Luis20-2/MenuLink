@@ -74,6 +74,32 @@ class RestaurantRepository {
       throw new Error(`Error al verificar slug: ${error.message}`);
     }
   }
+
+  // Activar restaurante por ID (marcar is_active = true)
+  async activate(id) {
+    try {
+      const restaurant = await Restaurant.findByPk(id);
+      if (!restaurant) return null;
+      restaurant.is_active = true;
+      await restaurant.save();
+      return restaurant;
+    } catch (error) {
+      throw new Error(`Error al activar restaurante: ${error.message}`);
+    }
+  }
+
+  // Actualizar contraseña por ID
+  async updatePassword(id, newPassword) {
+    try {
+      const restaurant = await Restaurant.findByPk(id);
+      if (!restaurant) return null;
+      restaurant.password = newPassword;
+      await restaurant.save();
+      return restaurant;
+    } catch (error) {
+      throw new Error(`Error al actualizar contraseña: ${error.message}`);
+    }
+  }
 }
 
 module.exports = new RestaurantRepository();

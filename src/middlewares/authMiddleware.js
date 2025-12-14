@@ -1,35 +1,24 @@
+const jwt = require('jsonwebtoken');
+const { Restaurant } = require('../models'); // Ajusta la ruta si es necesario
+const authController = require('../controllers/authController');
 const authService = require('../services/authService');
 
 const authMiddleware = {
   // Middleware para verificar token
   authenticateToken: (req, res, next) => {
-    try {
-      // Obtener token del header
-      const authHeader = req.headers['authorization'];
-      const token = authHeader && authHeader.split(' ')[1];
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.sendStatus(401);
 
-      if (!token) {
-        return res.status(401).json({
-          success: false,
-          message: 'Token de autenticación requerido'
-        });
-      }
-
-      // Verificar token
-      const decoded = authService.verifyToken(token);
-      
-      // Adjuntar datos del usuario a la request
-      req.restaurantId = decoded.id;
-      req.restaurantEmail = decoded.email;
-      req.restaurantName = decoded.name;
-
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+      if (err) return res.sendStatus(403);
+      // Propaga datos clave para los servicios y repos
+      req.user = user;
+      req.restaurantId = user.id;
+      req.restaurantEmail = user.email;
+      req.restaurantName = user.name;
       next();
-    } catch (error) {
-      return res.status(403).json({
-        success: false,
-        message: error.message
-      });
-    }
+    });
   },
 
   // Middleware opcional (no requiere autenticación estricta)
@@ -50,7 +39,10 @@ const authMiddleware = {
       // Si el token es inválido, continuar sin autenticación
       next();
     }
-  }
+  },
+
+ 
 };
 
 module.exports = authMiddleware;
+

@@ -38,7 +38,17 @@ const config = {
     level: process.env.LOG_LEVEL || 'info',
     file: process.env.LOG_FILE || 'app.log'
   }
+};  
+
+ // Configuración de correo electrónico
+config.email = {
+  service: process.env.EMAIL_SERVICE || 'gmail',
+  user: process.env.EMAIL_USER || '',
+  pass: process.env.EMAIL_PASS || '',
+  from: process.env.EMAIL_FROM || 'noreply.trackitverificacion.1@gmail.com',
+  fromName: process.env.EMAIL_FROM_NAME || 'MenuLink Support'
 };
+
 
 // Validar configuración crítica
 if (!config.database.password) {

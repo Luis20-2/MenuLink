@@ -19,7 +19,7 @@ const publicRoutes = require('./routes/public');
 const { sequelize } = require('./config/database');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(process.env.PORT) || 3000;
 
 // ============================================
 // MIDDLEWARES
@@ -30,7 +30,7 @@ app.use(express.json());
 
 // Middleware de logging
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log(`[LOG] ${new Date().toISOString()} ${req.method} ${req.url}`);
   next();
 });
 
@@ -82,10 +82,15 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // RUTAS DE LA API
 // ============================================
 
+// Log antes de registrar rutas
+console.log('[DEBUG] Registrando rutas de API...');
+
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/menu-items', menuItemsRoutes);
 app.use('/api/public', publicRoutes);
+
+console.log('[DEBUG] Rutas registradas correctamente');
 
 // ============================================
 // RUTAS DEL SISTEMA
@@ -198,7 +203,7 @@ const startServer = async () => {
     }
 
     // Iniciar servidor
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       console.log('='.repeat(50));
       console.log('🚀 MenuLink API - Backend II');
       console.log('='.repeat(50));

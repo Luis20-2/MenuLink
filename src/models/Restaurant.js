@@ -55,7 +55,34 @@ const Restaurant = sequelize.define('Restaurant', {
   },
   is_active: {
     type: DataTypes.BOOLEAN,
-    defaultValue: true
+    defaultValue: false
+  },
+  // ⭐ NUEVOS CAMPOS PARA VERIFICACIÓN
+  is_verified: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    comment: 'Si el email ha sido verificado'
+  },
+  verification_code: {
+    type: DataTypes.STRING(6),
+    allowNull: true,
+    comment: 'Código de 6 dígitos para verificar email'
+  },
+  verification_code_expires: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Fecha de expiración del código (15 minutos)'
+  },
+  // ⭐ NUEVOS CAMPOS PARA RESET PASSWORD
+  reset_password_token: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    comment: 'Token para resetear contraseña'
+  },
+  reset_password_expires: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Fecha de expiración del token de reset (1 hora)'
   }
 }, {
   tableName: 'Restaurants',

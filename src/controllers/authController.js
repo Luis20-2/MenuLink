@@ -1,4 +1,7 @@
 const authService = require('../services/authService');
+const { sendVerificationEmail } = require('../services/emailService');
+const { generateVerificationCode, getVerificationCodeExpiry } = require('../utils/generateCode');
+const Restaurant = require('../models/Restaurant');
 
 const authController = {
   // Registrar nuevo restaurante
@@ -14,23 +17,49 @@ const authController = {
         });
       }
 
-      const result = await authService.register({
+      // Verificar si el email ya existe
+      const existingRestaurant = await Restaurant.findOne({ where: { email } });
+      if (existingRestaurant) {
+        return res.status(400).json({
+          success: false,
+          message: 'El email ya está registrado'
+        });
+      }
+
+      // Crear restaurante con código de verificación
+      const verificationCode = generateVerificationCode();
+      const expiresAt = getVerificationCodeExpiry();
+
+      const restaurant = await Restaurant.create({
         name,
         email,
         password,
-        address,
-        phone
+        address: address || null,
+        phone: phone || null,
+        slug: name.toLowerCase().replace(/\s+/g, '-'),
+        is_verified: false,
+        is_active: false,
+        verification_code: verificationCode,
+        verification_code_expires: expiresAt
       });
+
+      // Enviar email de verificación
+      await sendVerificationEmail(restaurant.name, restaurant.email, verificationCode);
 
       res.status(201).json({
         success: true,
-        message: 'Restaurante registrado exitosamente',
-        data: result
+        message: '✅ Restaurante registrado. Revisa tu email para verificar la cuenta',
+        data: {
+          id: restaurant.id,
+          name: restaurant.name,
+          email: restaurant.email
+        }
       });
     } catch (error) {
+      console.error('Error en registro:', error);
       res.status(400).json({
         success: false,
-        message: error.message
+        message: error.message || 'Error al registrar el restaurante'
       });
     }
   },
@@ -66,24 +95,15 @@ const authController = {
   // Obtener perfil del restaurante autenticado
   async getProfile(req, res) {
     try {
-      const restaurantId = req.restaurantId;
-      
-      // Aquí después se implementará con el repositorio
-      // Por ahora retornamos datos básicos
-      
-      res.json({
-        success: true,
-        data: {
-          id: restaurantId,
-          email: req.restaurantEmail,
-          name: req.restaurantName
-        }
+      const restaurant = await Restaurant.findByPk(req.user.id, {
+        attributes: ['id', 'name', 'email', 'slug', 'address', 'phone']
       });
+      if (!restaurant) {
+        return res.status(404).json({ message: 'Restaurante no encontrado' });
+      }
+      res.json({ restaurant });
     } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: error.message
-      });
+      res.status(500).json({ message: 'Error al obtener perfil' });
     }
   },
 
@@ -111,6 +131,52 @@ const authController = {
         success: false,
         message: error.message
       });
+    }
+  },
+
+  // Confirmar email mediante token
+  async confirm(req, res) {
+    try {
+      const token = req.query.token || req.body.token;
+      if (!token) {
+        return res.status(400).json({ success: false, message: 'Token de verificación requerido' });
+      }
+
+      await authService.verifyEmail(token);
+
+      res.json({ success: true, message: 'Email confirmado. Tu cuenta está activa.' });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  },
+
+  // Solicitar restablecimiento de contraseña
+  async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ success: false, message: 'Email es requerido' });
+      }
+
+      await authService.sendPasswordReset(email);
+      res.json({ success: true, message: 'Si la cuenta existe, se envió un email con instrucciones.' });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  },
+
+  // Restablecer contraseña usando token
+  async resetPassword(req, res) {
+    try {
+      const { token, password } = req.body;
+      if (!token || !password) {
+        return res.status(400).json({ success: false, message: 'Token y nueva contraseña son requeridos' });
+      }
+
+      await authService.resetPassword(token, password);
+      res.json({ success: true, message: 'Contraseña restablecida correctamente' });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error.message });
     }
   }
 };
